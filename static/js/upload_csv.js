@@ -18,7 +18,7 @@ function upload_csv(evt)
         if (data && data.length > 0)
         {
             $("#csv_file_output").append("Imported " + data.length + " rows successfully!<br />");
-            alert(data[0]);
+            display_csv(data);
         }
         else
         {
