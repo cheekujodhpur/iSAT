@@ -19,6 +19,7 @@ function upload_csv(evt)
         {
             $("#csv_file_output").append("Imported " + data.length + " rows successfully!<br />");
             display_csv(data);
+            process_for_histogram(data);
         }
         else
         {
