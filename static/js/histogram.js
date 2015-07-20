@@ -51,7 +51,7 @@ function show_histogram()
         .data(data)
         .enter().append("g")
         .attr("class","bar")
-        .attr("transform", function(d) {return "translate(" + 0 + "," + (d.x) + ")"; });
+        .attr("transform", function(d) {return "translate(" + 0 + "," + y(d.x) + ")"; });
 
     bar.append("rect")
       .attr("x",1)
