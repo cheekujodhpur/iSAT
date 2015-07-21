@@ -1,3 +1,32 @@
+#header
+{
+    width:100px;
+    margin:10px auto;
+    font-family:Verdana;
+    font-size:20px;
+}
+
+#document
+{
+    margin:10px;
+    padding:10px;
+    font-family:Calibri;
+    font-size:16px;
+}
+
+#display_csv_table
+{
+    display:block;
+    height:400px;
+    overflow:auto;
+}
+
+.tab-pane
+{
+    margin:10px;
+    padding:10px;
+}
+
 .hidden
 {
     display:none;

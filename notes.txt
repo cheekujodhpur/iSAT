@@ -1,0 +1,8 @@
+Priority : UI
+
+1. Take the data from the user
+2. Show them the table
+3. Show them the first histogram - unique values
+4. Binning - snap horizontal bar
+5. Export a csv which has Rec,Bin,Number
+6. 
