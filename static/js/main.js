@@ -26,6 +26,8 @@ function upload_csv(evt)
         {
             $("#csv_file_output").append("Imported " + data.length + " rows successfully!<br />");
             display_csv(data);
+            var processed_data = process_for_histogram(data);
+            show_histogram(processed_data[1]);
         }
         else
         {
@@ -91,4 +93,73 @@ function display_csv(data)
     }
     $("#tabpill_view_csv").removeClass("hidden");
     $('#nemo a[href="#view_csv"]').tab('show');
+}
+
+function process_for_histogram(data)
+{
+    var proc_data = [];
+    for(var i in data[0])
+    {
+        var tmp_data_list = [];
+        for(var j = 0;j<data.length;j++)
+        {
+            tmp_data_list.push(data[j][i]);
+        }
+        proc_data.push(tmp_data_list);
+    }
+    return proc_data;
+}
+
+
+function show_histogram(values)
+{
+    var margin = {top: 10, right: 30, bottom: 30, left: 30},
+        width = 960 - margin.left - margin.right;
+        height = 500 - margin.top - margin.bottom;
+
+    var y = d3.scale.linear()
+        .domain([0,10])
+        .range([0,height]);
+
+    var data = d3.layout.histogram()
+        .bins(y.ticks(10))
+        (values);
+
+    var x = d3.scale.linear()
+        .domain([0, d3.max(data,function(d) {return d.y; })])
+        .range([0,width]);
+
+    var yAxis = d3.svg.axis()
+        .scale(y)
+        .orient("left");
+
+    var svg = d3.select("#bin").append("svg")
+        .attr("width",width+margin.left+margin.right)
+        .attr("height", height+margin.top + margin.bottom)
+        .append("g")
+        .attr("transform","translate("+margin.left + "," + margin.top + ")");
+
+    
+    var bar = svg.selectAll(".bar")
+        .data(data)
+        .enter().append("g")
+        .attr("class","bar")
+        .attr("transform", function(d) {return "translate(" + 0 + "," + (height-y(d.x)-margin.top-margin.bottom).toString() + ")"; });
+
+    bar.append("rect")
+      .attr("x",1)
+      .attr("width", function(d) {return x(d.y);})
+      .attr("height", function(d) {return y(1)});
+
+    bar.append("text")
+      .attr("dy", ".75em")
+      .attr("y", y(data[0].dx/2))
+      .attr("x", function(d){return 20+x(d.y); })
+      .attr("text-anchor", "middle")
+      .text(function(d){if(d.y==0) return ''; else return (d.y); });
+
+    svg.append("g")
+      .attr("class","y axis")
+      .attr("transform", "translate(0," + y(data[0].dx).toString() + ")")
+      .call(yAxis);      
 }
