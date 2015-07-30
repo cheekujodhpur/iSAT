@@ -31,3 +31,16 @@
 {
     display:none;
 }
+
+.bar rect
+{
+    fill:steelblue;
+    shape-rendering:crispEdges;
+}
+
+.axis path, .axis line
+{
+    fill:none;
+    stroke: #fff;
+    shape-rendering:crispEdges;
+}

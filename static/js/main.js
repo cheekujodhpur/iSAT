@@ -110,6 +110,7 @@ function process_for_histogram(data)
     return proc_data;
 }
 
+var y_inv;
 
 function show_histogram(values)
 {
@@ -120,6 +121,10 @@ function show_histogram(values)
     var y = d3.scale.linear()
         .domain([0,10])
         .range([0,height]);
+
+    y_inv = d3.scale.linear()
+        .domain([0,height])
+        .range([0,10]);
 
     var data = d3.layout.histogram()
         .bins(y.ticks(10))
@@ -158,8 +163,29 @@ function show_histogram(values)
       .attr("text-anchor", "middle")
       .text(function(d){if(d.y==0) return ''; else return (d.y); });
 
+    var drag = d3.behavior.drag()
+        .on("drag",dragmove);
+
+    var line = svg.append("line")
+        .attr("x1",0)
+        .attr("y1",y(data[0].dx))
+        .attr("x2",width)
+        .attr("y2",y(data[0].dx))
+        .attr("stroke-width",2)
+        .attr("stroke","black")
+        .call(drag);
+
     svg.append("g")
       .attr("class","y axis")
       .attr("transform", "translate(0," + y(data[0].dx).toString() + ")")
       .call(yAxis);      
+    
 }
+var transY = 0;
+function dragmove(d)
+{
+    transY += d3.event.dy;
+    d3.select(this).attr('transform', "translate(" + 0 + "," + transY + ")");
+    console.log(y_inv(transY));
+}
+
