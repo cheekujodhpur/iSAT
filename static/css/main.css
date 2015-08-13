@@ -41,6 +41,6 @@
 .axis path, .axis line
 {
     fill:none;
-    stroke: #fff;
+    stroke: #000;
     shape-rendering:crispEdges;
 }

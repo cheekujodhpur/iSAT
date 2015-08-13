@@ -27,7 +27,8 @@ function upload_csv(evt)
             $("#csv_file_output").append("Imported " + data.length + " rows successfully!<br />");
             display_csv(data);
             var processed_data = process_for_histogram(data);
-            show_histogram(processed_data[1]);
+            //TODO: Show for general
+            show_histogram(processed_data[1]); //0th index holds the primary key
         }
         else
         {
@@ -110,82 +111,138 @@ function process_for_histogram(data)
     return proc_data;
 }
 
-var y_inv;
+var scales = {x:"",y:"",y_inv:""};
+var margin = {top: 10, right: 30, bottom: 30, left: 30},
+    width = 960 - margin.left - margin.right;
+    height = 500 - margin.top - margin.bottom;
+
+function compute_scales(values)
+{
+  var sorted_values = values.sort(); //sort them
+  var diff = parseFloat(sorted_values[sorted_values.length-1]);
+  var min = parseFloat(sorted_values[0]);  //the range of numbers we have
+  var max = diff;
+  for(var i = 1;i<sorted_values.length;i++)
+  {
+    var tmp_diff = parseFloat(sorted_values[i])-parseFloat(sorted_values[i-1]);
+    if(tmp_diff<diff && tmp_diff)diff=tmp_diff;
+  }
+  //diff is now the least count
+  var number_of_ticks = (max-min)/diff;
+  scales.y = d3.scale.linear()
+          .domain([min,max])
+          .range([0,height]);
+  scales.y_inv = d3.scale.linear()
+        .domain([0,height])
+        .range([min,max]);
+  var data = d3.layout.histogram()
+        .bins(scales.y.ticks(number_of_ticks))
+        (values);
+  scales.x = d3.scale.linear()
+      .domain([0, d3.max(data,function(d) {return d.y; })])
+      .range([0,width]);
+  return data;
+}
+
+var lines = [];
+var transY = [];
+var drag = d3.behavior.drag()
+    .on("drag",dragmove);
+
+function make_draggable_line(data,svg,num)
+{
+    //remove old
+    svg.selectAll(".binner").remove(); 
+
+    var y = scales.y;
+    lines = [];
+    transY = [];
+    for(var i = 0;i<num-1;i++)
+    {
+      var random_height = Math.random()*height;
+      var line = svg.append("line")
+          .attr("x1",0)
+          .attr("y1",random_height)
+          .attr("x2",width)
+          .attr("y2",random_height)
+          .attr("stroke-width",2)
+          .attr("stroke","black")
+          .attr("class","binner")
+          .attr("id","bin_"+i.toString())
+          .call(drag);
+      lines.push(line);
+      transY.push(0);
+    }
+}
 
 function show_histogram(values)
 {
-    var margin = {top: 10, right: 30, bottom: 30, left: 30},
-        width = 960 - margin.left - margin.right;
-        height = 500 - margin.top - margin.bottom;
-
-    var y = d3.scale.linear()
-        .domain([0,10])
-        .range([0,height]);
-
-    y_inv = d3.scale.linear()
-        .domain([0,height])
-        .range([0,10]);
-
-    var data = d3.layout.histogram()
-        .bins(y.ticks(10))
-        (values);
-
-    var x = d3.scale.linear()
-        .domain([0, d3.max(data,function(d) {return d.y; })])
-        .range([0,width]);
+    var sorted_values = values.sort(); //sort them
+    var data = compute_scales(values);
+    var y = scales.y;
+    var x = scales.x;
+    var y_inv = scales.y_inv;
 
     var yAxis = d3.svg.axis()
         .scale(y)
-        .orient("left");
-
-    var svg = d3.select("#bin").append("svg")
-        .attr("width",width+margin.left+margin.right)
-        .attr("height", height+margin.top + margin.bottom)
+        .orient("left"); 
+    var svg = d3.select("#histo").append("svg")
+        .attr("width", width+margin.right)
+        .attr("height", height + margin.bottom)
         .append("g")
         .attr("transform","translate("+margin.left + "," + margin.top + ")");
 
-    
     var bar = svg.selectAll(".bar")
         .data(data)
         .enter().append("g")
         .attr("class","bar")
-        .attr("transform", function(d) {return "translate(" + 0 + "," + (height-y(d.x)-margin.top-margin.bottom).toString() + ")"; });
+        .attr("transform", function(d) {return "translate(" + 0 + "," + y(d.x).toString()+ ")"; });
 
     bar.append("rect")
       .attr("x",1)
       .attr("width", function(d) {return x(d.y);})
       .attr("height", function(d) {return y(1)});
 
-    bar.append("text")
-      .attr("dy", ".75em")
-      .attr("y", y(data[0].dx/2))
-      .attr("x", function(d){return 20+x(d.y); })
-      .attr("text-anchor", "middle")
-      .text(function(d){if(d.y==0) return ''; else return (d.y); });
+    $("#num_of_bins").change(function(){make_draggable_line(data,svg,$(this).val());})
+    //make_draggable_line(data,svg,1);
 
-    var drag = d3.behavior.drag()
-        .on("drag",dragmove);
-
-    var line = svg.append("line")
-        .attr("x1",0)
-        .attr("y1",y(data[0].dx))
-        .attr("x2",width)
-        .attr("y2",y(data[0].dx))
-        .attr("stroke-width",2)
-        .attr("stroke","black")
-        .call(drag);
+    $("#createBins").click(function(){
+      var num_of_bins = parseInt($("#num_of_bins").val()); 
+      var counts = [];
+      for(var i = 0;i<num_of_bins;i++)
+        counts.push(0);
+      var i = 0,linei = 0;
+      while(i<sorted_values.length)
+      {
+        if(sorted_values[i]>=y_inv(parseFloat(lines[linei].attr("y1"))+transY[linei]))
+        {
+          linei++;
+          if(linei>=lines.length)break;
+        }
+        else
+        {
+          counts[linei]++;
+          i++;
+        }
+      }
+      var total = 0;
+      $.each(counts,function(){total+=this});
+      counts[counts.length-1]=sorted_values.length-total;
+      console.log(counts);
+    });
 
     svg.append("g")
       .attr("class","y axis")
-      .attr("transform", "translate(0," + y(data[0].dx).toString() + ")")
+      .attr("transform", "translate(0," +0 + ")")
       .call(yAxis);      
     
 }
-var transY = 0;
+
 function dragmove(d)
 {
-    transY += d3.event.dy;
-    d3.select(this).attr('transform', "translate(" + 0 + "," + transY + ")");
-    console.log(y_inv(transY));
+    var id = parseInt(d3.select(this).attr("id").split("_")[1]);
+    transY[id] += d3.event.dy;
+    d3.select(this).attr('transform', "translate(" + 0 + "," + transY[id] + ")");
+    console.log(scales.y_inv(parseFloat(d3.select(this).attr("y1"))+transY[id])); //margin.top just for calibration
 }
 
